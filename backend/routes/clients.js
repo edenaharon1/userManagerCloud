@@ -31,14 +31,7 @@ router.post("/", (req, res) => {
   res.status(201).json({ client: newClient });
 });
 
-// (אופציונלי) מחיקת לקוח
-router.delete("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  clients = clients.filter((c) => c.id !== id);
-  res.status(204).send(); // ללא תוכן
-});
-
-// (אופציונלי) עדכון לקוח
+// עדכון לקוח
 router.put("/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const { name, email, phone } = req.body;
@@ -48,6 +41,13 @@ router.put("/:id", (req, res) => {
 
   clients[index] = { id, name, email, phone };
   res.json({ client: clients[index] });
+});
+
+// מחיקת לקוח
+router.delete("/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  clients = clients.filter((c) => c.id !== id);
+  res.status(204).send(); // ללא תוכן
 });
 
 module.exports = router;

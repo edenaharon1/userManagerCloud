@@ -17,15 +17,20 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
+import ClientForm from "../components/ClientForm";
 
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState(null); // למודאל
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = () => {
     fetch("http://localhost:3001/api/clients")
       .then((res) => res.json())
       .then((data) => {
@@ -33,23 +38,60 @@ export default function CustomersPage() {
         setLoading(false);
       })
       .catch(console.error);
-  }, []);
-
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // הוספת לקוח חדש
+  const handleAddClient = (clientData) => {
     fetch("http://localhost:3001/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(clientData),
     })
       .then((res) => res.json())
       .then((data) => {
         setClients((prev) => [...prev, data.client]);
-        setForm({ name: "", email: "", phone: "" });
+      })
+      .catch(console.error);
+  };
+
+  // עדכון לקוח קיים
+  const handleUpdateClient = (clientData) => {
+    fetch(`http://localhost:3001/api/clients/${selectedClient.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(clientData),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("עדכון נכשל");
+        return res.json();
+      })
+      .then((data) => {
+        setClients((prev) =>
+          prev.map((c) => (c.id === selectedClient.id ? data.client : c))
+        );
+        setSelectedClient(data.client);
+        setIsEditing(false);
+      })
+      .catch(console.error);
+  };
+
+  // מחיקת לקוח
+  const handleDeleteClient = (id) => {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
+
+    fetch(`http://localhost:3001/api/clients/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (res.ok) {
+          setClients((prev) => prev.filter((c) => c.id !== id));
+          if (selectedClient && selectedClient.id === id) {
+            setSelectedClient(null);
+            setIsEditing(false);
+          }
+        } else {
+          throw new Error("מחיקה נכשלה");
+        }
       })
       .catch(console.error);
   };
@@ -74,7 +116,8 @@ export default function CustomersPage() {
           letterSpacing: "0.15em",
           color: "#0d47a1",
           marginBottom: "40px",
-          fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          fontFamily:
+            "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         }}
       >
         CUSTOMER MANAGEMENT
@@ -117,7 +160,10 @@ export default function CustomersPage() {
                   key={client.id}
                   hover
                   sx={{ cursor: "pointer" }}
-                  onClick={() => setSelectedClient(client)}
+                  onClick={() => {
+                    setSelectedClient(client);
+                    setIsEditing(false);
+                  }}
                 >
                   <TableCell>{client.id}</TableCell>
                   <TableCell>{client.name}</TableCell>
@@ -130,6 +176,7 @@ export default function CustomersPage() {
         </Table>
       </Paper>
 
+      {/* הוספת לקוח חדש */}
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           Add New Client
@@ -138,7 +185,15 @@ export default function CustomersPage() {
 
         <Box
           component="form"
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddClient({
+              name: e.target.name.value,
+              email: e.target.email.value,
+              phone: e.target.phone.value,
+            });
+            e.target.reset();
+          }}
           sx={{
             display: "flex",
             gap: 2,
@@ -146,55 +201,81 @@ export default function CustomersPage() {
             alignItems: "center",
           }}
         >
-          <TextField
-            name="name"
-            label="Name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            sx={{ flex: 1 }}
-          />
+          <TextField name="name" label="Name" required sx={{ flex: 1 }} />
           <TextField
             name="email"
             label="Email"
             type="email"
-            value={form.email}
-            onChange={handleChange}
             required
             sx={{ flex: 1 }}
           />
-          <TextField
-            name="phone"
-            label="Phone"
-            value={form.phone}
-            onChange={handleChange}
-            required
-            sx={{ flex: 1 }}
-          />
+          <TextField name="phone" label="Phone" required sx={{ flex: 1 }} />
           <Button variant="contained" type="submit" color="primary" sx={{ height: "56px" }}>
             Add
           </Button>
         </Box>
       </Paper>
 
-      {/* מודאל פרטי לקוח */}
-      <Dialog open={Boolean(selectedClient)} onClose={() => setSelectedClient(null)}>
+      {/* מודאל פרטי לקוח / עריכה */}
+      <Dialog
+        open={Boolean(selectedClient)}
+        onClose={() => {
+          setSelectedClient(null);
+          setIsEditing(false);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Client Details</DialogTitle>
         <DialogContent dividers>
-          {selectedClient && (
+          {!isEditing && selectedClient && (
             <>
-              <Typography><strong>ID:</strong> {selectedClient.id}</Typography>
-              <Typography><strong>Name:</strong> {selectedClient.name}</Typography>
-              <Typography><strong>Email:</strong> {selectedClient.email}</Typography>
-              <Typography><strong>Phone:</strong> {selectedClient.phone}</Typography>
+              <Typography>
+                <strong>ID:</strong> {selectedClient.id}
+              </Typography>
+              <Typography>
+                <strong>Name:</strong> {selectedClient.name}
+              </Typography>
+              <Typography>
+                <strong>Email:</strong> {selectedClient.email}
+              </Typography>
+              <Typography>
+                <strong>Phone:</strong> {selectedClient.phone}
+              </Typography>
             </>
+          )}
+
+          {isEditing && selectedClient && (
+            <ClientForm
+              clientToEdit={selectedClient}
+              onSave={handleUpdateClient}
+              onCancel={() => setIsEditing(false)}
+            />
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSelectedClient(null)} color="secondary">
+          {!isEditing && (
+            <>
+              <Button onClick={() => setIsEditing(true)} color="primary">
+                Edit
+              </Button>
+              <Button
+                onClick={() => handleDeleteClient(selectedClient.id)}
+                color="error"
+              >
+                Delete
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={() => {
+              setSelectedClient(null);
+              setIsEditing(false);
+            }}
+            color="secondary"
+          >
             Close
           </Button>
-          {/* אפשר להוסיף כאן כפתורי Edit ו-Delete עם פונקציונליות */}
         </DialogActions>
       </Dialog>
     </Container>
