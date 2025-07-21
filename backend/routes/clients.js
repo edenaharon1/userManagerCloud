@@ -1,53 +1,72 @@
 const express = require("express");
 const router = express.Router();
-
-// מסד נתונים זמני בזיכרון (mock)
-let clients = [
-  { id: 1, name: "רונית כהן", email: "ronit@example.com", phone: "050-1234567" },
-  { id: 2, name: "משה לוי", email: "moshe@example.com", phone: "052-7654321" },
-];
+const clientsModel = require("../clientsModel"); // שנה לנתיב נכון
 
 // קריאת כל הלקוחות
-router.get("/", (req, res) => {
-  res.json({ clients });
+router.get("/", async (req, res) => {
+  try {
+    const clients = await clientsModel.getClients();
+    res.json({ clients });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "שגיאה בשרת" });
+  }
 });
 
 // יצירת לקוח חדש
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { name, email, phone } = req.body;
 
   if (!name || !email || !phone) {
     return res.status(400).json({ message: "יש למלא את כל השדות" });
   }
 
-  const newClient = {
-    id: clients.length > 0 ? clients[clients.length - 1].id + 1 : 1,
-    name,
-    email,
-    phone,
-  };
-
-  clients.push(newClient);
-  res.status(201).json({ client: newClient });
+  try {
+    const insertId = await clientsModel.addClient(name, phone, email);
+    const newClient = await clientsModel.getClientById(insertId);
+    res.status(201).json({ client: newClient });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "שגיאה ביצירת לקוח" });
+  }
 });
 
 // עדכון לקוח
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   const { name, email, phone } = req.body;
 
-  const index = clients.findIndex((c) => c.id === id);
-  if (index === -1) return res.status(404).json({ message: "לקוח לא נמצא" });
+  if (!name || !email || !phone) {
+    return res.status(400).json({ message: "יש למלא את כל השדות" });
+  }
 
-  clients[index] = { id, name, email, phone };
-  res.json({ client: clients[index] });
+  try {
+    const affectedRows = await clientsModel.updateClient(id, name, phone, email);
+    if (affectedRows === 0) {
+      return res.status(404).json({ message: "לקוח לא נמצא" });
+    }
+    const updatedClient = await clientsModel.getClientById(id);
+    res.json({ client: updatedClient });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "שגיאה בעדכון לקוח" });
+  }
 });
 
 // מחיקת לקוח
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
-  clients = clients.filter((c) => c.id !== id);
-  res.status(204).send(); // ללא תוכן
+
+  try {
+    const affectedRows = await clientsModel.deleteClient(id);
+    if (affectedRows === 0) {
+      return res.status(404).json({ message: "לקוח לא נמצא" });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "שגיאה במחיקת לקוח" });
+  }
 });
 
 module.exports = router;
