@@ -13,16 +13,33 @@ const remindersRouter = require("./routes/reminders");
 app.use("/api/clients", clientsRouter);
 app.use("/api/reminders", remindersRouter);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// בדיקת התחברות למסד הנתונים לפני התחלת השרת
+const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור (כמו בדוגמה למעלה)
 
+async function startServer() {
+  try {
+    // ניסיון חיבור למסד
+    const connection = await db.getConnection();
+    console.log("✅ Successfully connected to the database.");
+    connection.release();
+
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  } catch (error) {
+    console.error("❌ Failed to connect to the database:", error.message);
+    process.exit(1); // מפסיק את התהליך אם אין חיבור למסד
+  }
+}
+
+startServer();
+
+// בדיקה בסיסית
 app.get("/api/test-db", (req, res) => {
-  res.json({ dbWorking: true, message: "בדיקת שרת בסיסית – עובד" });
+  res.json({ dbWorking: true, message: "Basic server test – working" });
 });
 
-
-// טיפול בשגיאות – חייב להיות בסוף
+// טיפול בשגיאות
 app.use((err, req, res, next) => {
-  console.error("שגיאה כללית:", err);
-  res.status(500).json({ message: "אירעה שגיאה בשרת", error: err.message });
+  console.error("General error:", err);
+  res.status(500).json({ message: "An error occurred on the server", error: err.message });
 });
