@@ -14,7 +14,7 @@ app.use("/api/clients", clientsRouter);
 app.use("/api/reminders", remindersRouter);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
 app.get("/api/test-db", (req, res) => {
   res.json({ dbWorking: true, message: "בדיקת שרת בסיסית – עובד" });
