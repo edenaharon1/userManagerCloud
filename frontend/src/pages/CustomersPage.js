@@ -31,13 +31,21 @@ export default function CustomersPage() {
   }, []);
 
   const fetchClients = () => {
+    console.log("📡 שולח בקשת GET לשרת...");
     fetch("http://localhost:3001/api/clients")
-      .then((res) => res.json())
+      .then((res) => {
+        console.log("🔁 התקבלה תגובה מהשרת:", res);
+        return res.json();
+      })
       .then((data) => {
+        console.log("✅ קיבלתי את הלקוחות:", data);
         setClients(data.clients || []);
         setLoading(false);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("❌ שגיאה בעת הבאת לקוחות:", err);
+        setLoading(false);
+      });
   };
 
   // הוספת לקוח חדש
@@ -48,15 +56,15 @@ export default function CustomersPage() {
       body: JSON.stringify(clientData),
     })
       .then((res) => res.json())
-      .then((data) => {
-        setClients((prev) => [...prev, data.client]);
+      .then(() => {
+        fetchClients();
       })
       .catch(console.error);
   };
 
   // עדכון לקוח קיים
   const handleUpdateClient = (clientData) => {
-    fetch(`http://localhost:3001/api/clients/${selectedClient.id}`, {
+    fetch(`http://localhost:3001/api/clients/${selectedClient.ID}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(clientData),
@@ -67,7 +75,7 @@ export default function CustomersPage() {
       })
       .then((data) => {
         setClients((prev) =>
-          prev.map((c) => (c.id === selectedClient.id ? data.client : c))
+          prev.map((c) => (c.ID === selectedClient.ID ? data.client : c))
         );
         setSelectedClient(data.client);
         setIsEditing(false);
@@ -76,16 +84,16 @@ export default function CustomersPage() {
   };
 
   // מחיקת לקוח
-  const handleDeleteClient = (id) => {
+  const handleDeleteClient = (ID) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
 
-    fetch(`http://localhost:3001/api/clients/${id}`, {
+    fetch(`http://localhost:3001/api/clients/${ID}`, {
       method: "DELETE",
     })
       .then((res) => {
         if (res.ok) {
-          setClients((prev) => prev.filter((c) => c.id !== id));
-          if (selectedClient && selectedClient.id === id) {
+          setClients((prev) => prev.filter((c) => c.ID !== ID));
+          if (selectedClient && selectedClient.ID === ID) {
             setSelectedClient(null);
             setIsEditing(false);
           }
@@ -96,11 +104,17 @@ export default function CustomersPage() {
       .catch(console.error);
   };
 
-  const filteredClients = clients.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // פונקציית סינון ללקוחות לפי חיפוש בשם או אימייל
+  const filteredClients = clients
+    .filter(Boolean) // מסנן ערכים falsy
+    .filter((client) => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        (client.Name && client.Name.toLowerCase().includes(term)) ||
+        (client.Email && client.Email.toLowerCase().includes(term))
+      );
+    });
 
   if (loading) return <Typography>Loading clients...</Typography>;
 
@@ -155,22 +169,31 @@ export default function CustomersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map((client) => (
-                <TableRow
-                  key={client.id}
-                  hover
-                  sx={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedClient(client);
-                    setIsEditing(false);
-                  }}
-                >
-                  <TableCell>{client.id}</TableCell>
-                  <TableCell>{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                </TableRow>
-              ))
+              filteredClients.map((client) => {
+                console.log("Rendering client:", client);
+
+                const id = client.ID ?? "(missing id)";
+                const name = client.Name ?? "(missing name)";
+                const email = client.Email ?? "(missing email)";
+                const phone = client.Phone ?? "(missing phone)";
+
+                return (
+                  <TableRow
+                    key={id}
+                    hover
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedClient(client);
+                      setIsEditing(false);
+                    }}
+                  >
+                    <TableCell>{id}</TableCell>
+                    <TableCell>{name}</TableCell>
+                    <TableCell>{email}</TableCell>
+                    <TableCell>{phone}</TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -188,9 +211,9 @@ export default function CustomersPage() {
           onSubmit={(e) => {
             e.preventDefault();
             handleAddClient({
-              name: e.target.name.value,
-              email: e.target.email.value,
-              phone: e.target.phone.value,
+              Name: e.target.name.value,
+              Email: e.target.email.value,
+              Phone: e.target.phone.value,
             });
             e.target.reset();
           }}
@@ -210,7 +233,12 @@ export default function CustomersPage() {
             sx={{ flex: 1 }}
           />
           <TextField name="phone" label="Phone" required sx={{ flex: 1 }} />
-          <Button variant="contained" type="submit" color="primary" sx={{ height: "56px" }}>
+          <Button
+            variant="contained"
+            type="submit"
+            color="primary"
+            sx={{ height: "56px" }}
+          >
             Add
           </Button>
         </Box>
@@ -231,16 +259,16 @@ export default function CustomersPage() {
           {!isEditing && selectedClient && (
             <>
               <Typography>
-                <strong>ID:</strong> {selectedClient.id}
+                <strong>ID:</strong> {selectedClient.ID}
               </Typography>
               <Typography>
-                <strong>Name:</strong> {selectedClient.name}
+                <strong>Name:</strong> {selectedClient.Name}
               </Typography>
               <Typography>
-                <strong>Email:</strong> {selectedClient.email}
+                <strong>Email:</strong> {selectedClient.Email}
               </Typography>
               <Typography>
-                <strong>Phone:</strong> {selectedClient.phone}
+                <strong>Phone:</strong> {selectedClient.Phone}
               </Typography>
             </>
           )}
@@ -260,7 +288,7 @@ export default function CustomersPage() {
                 Edit
               </Button>
               <Button
-                onClick={() => handleDeleteClient(selectedClient.id)}
+                onClick={() => handleDeleteClient(selectedClient.ID)}
                 color="error"
               >
                 Delete
