@@ -34,7 +34,7 @@ resource "aws_lb_target_group" "back" {
   vpc_id      = module.vpc.vpc_id
 
   health_check {
-    port               = "3000"
+    port               = "3001"  # תוקן כאן
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
@@ -58,7 +58,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-resource "aws_lb_listener_rule" "static" {
+resource "aws_lb_listener_rule" "api_route" {  # שונה השם מ־static ל־api_route
   listener_arn = aws_lb_listener.http.arn
   priority     = 1
 
@@ -69,7 +69,7 @@ resource "aws_lb_listener_rule" "static" {
 
   condition {
     path_pattern {
-      values = ["/s3_album/*"]
+      values = ["/api/*"]  # זה הנתיב הנכון לפרויקט שלך
     }
   }
 }
