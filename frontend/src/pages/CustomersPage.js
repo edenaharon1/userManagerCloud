@@ -34,10 +34,7 @@ export default function CustomersPage() {
   const fetchClients = () => {
     console.log("📡 שולח בקשת GET לשרת...");
     fetch(`${process.env.REACT_APP_API_URL}/clients`)
-      .then((res) => {
-        console.log("🔁 התקבלה תגובה מהשרת:", res);
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         console.log("✅ קיבלתי את הלקוחות:", data);
         setClients(data.clients || []);
@@ -49,43 +46,38 @@ export default function CustomersPage() {
       });
   };
 
-  // הוספת לקוח חדש עם בדיקה
   const handleAddClient = (clientData) => {
-  // המרת שמות השדות לקטנים לפי מה שה-backend מצפה
-  const payload = {
-    name: clientData.name?.trim(),
-    email: clientData.email?.trim(),
-    phone: clientData.phone?.trim(),
+    const payload = {
+      name: clientData.name?.trim(),
+      email: clientData.email?.trim(),
+      phone: clientData.phone?.trim(),
+    };
+
+    if (!payload.name || !payload.email || !payload.phone) {
+      alert("נא למלא את כל השדות: Name, Email, Phone");
+      return;
+    }
+
+    console.log("Sending client payload:", payload);
+
+    fetch(`${process.env.REACT_APP_API_URL}/clients`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
+      .then(() => fetchClients())
+      .catch((err) => {
+        console.error("❌ שגיאה בעת הוספת לקוח:", err);
+        alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
+      });
   };
 
-  // בדיקה שהשדות לא ריקים
-  if (!payload.name || !payload.email || !payload.phone) {
-    alert("נא למלא את כל השדות: Name, Email, Phone");
-    return;
-  }
-
-  console.log("Sending client payload:", payload);
-
-  fetch(`${process.env.REACT_APP_API_URL}/clients`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      return res.json();
-    })
-    .then(() => fetchClients())
-    .catch((err) => {
-      console.error("❌ שגיאה בעת הוספת לקוח:", err);
-      alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
-    });
-};
-
-
-  // עדכון לקוח קיים
   const handleUpdateClient = (clientData) => {
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${selectedClient.ID}`, {
+    fetch(`${process.env.REACT_APP_API_URL}/clients/${selectedClient.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(clientData),
@@ -96,7 +88,7 @@ export default function CustomersPage() {
       })
       .then((data) => {
         setClients((prev) =>
-          prev.map((c) => (c.ID === selectedClient.ID ? data.client : c))
+          prev.map((c) => (c.id === selectedClient.id ? data.client : c))
         );
         setSelectedClient(data.client);
         setIsEditing(false);
@@ -104,17 +96,16 @@ export default function CustomersPage() {
       .catch(console.error);
   };
 
-  // מחיקת לקוח
-  const handleDeleteClient = (ID) => {
+  const handleDeleteClient = (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
 
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${ID}`, {
+    fetch(`${process.env.REACT_APP_API_URL}/clients/${id}`, {
       method: "DELETE",
     })
       .then((res) => {
         if (res.ok) {
-          setClients((prev) => prev.filter((c) => c.ID !== ID));
-          if (selectedClient && selectedClient.ID === ID) {
+          setClients((prev) => prev.filter((c) => c.id !== id));
+          if (selectedClient && selectedClient.id === id) {
             setSelectedClient(null);
             setIsEditing(false);
           }
@@ -125,17 +116,14 @@ export default function CustomersPage() {
       .catch(console.error);
   };
 
-  // סינון לקוחות לפי חיפוש
-  const filteredClients = clients
-    .filter(Boolean)
-    .filter((client) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        (client.Name && client.Name.toLowerCase().includes(term)) ||
-        (client.Email && client.Email.toLowerCase().includes(term))
-      );
-    });
+  const filteredClients = clients.filter(Boolean).filter((client) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (client.name && client.name.toLowerCase().includes(term)) ||
+      (client.email && client.email.toLowerCase().includes(term))
+    );
+  });
 
   if (loading) return <Typography>Loading clients...</Typography>;
 
@@ -151,8 +139,7 @@ export default function CustomersPage() {
           letterSpacing: "0.15em",
           color: "#0d47a1",
           marginBottom: "40px",
-          fontFamily:
-            "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         }}
       >
         CUSTOMER MANAGEMENT
@@ -191,28 +178,22 @@ export default function CustomersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map((client) => {
-                const id = client.ID ?? "(missing id)";
-                const name = client.Name ?? "(missing name)";
-                const email = client.Email ?? "(missing email)";
-                const phone = client.Phone ?? "(missing phone)";
-                return (
-                  <TableRow
-                    key={id}
-                    hover
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => {
-                      setSelectedClient(client);
-                      setIsEditing(false);
-                    }}
-                  >
-                    <TableCell>{id}</TableCell>
-                    <TableCell>{name}</TableCell>
-                    <TableCell>{email}</TableCell>
-                    <TableCell>{phone}</TableCell>
-                  </TableRow>
-                );
-              })
+              filteredClients.map((client) => (
+                <TableRow
+                  key={client.id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedClient(client);
+                    setIsEditing(false);
+                  }}
+                >
+                  <TableCell>{client.id}</TableCell>
+                  <TableCell>{client.name}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.phone}</TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -244,20 +225,9 @@ export default function CustomersPage() {
           }}
         >
           <TextField name="name" label="Name" required sx={{ flex: 1 }} />
-          <TextField
-            name="email"
-            label="Email"
-            type="email"
-            required
-            sx={{ flex: 1 }}
-          />
+          <TextField name="email" label="Email" type="email" required sx={{ flex: 1 }} />
           <TextField name="phone" label="Phone" required sx={{ flex: 1 }} />
-          <Button
-            variant="contained"
-            type="submit"
-            color="primary"
-            sx={{ height: "56px" }}
-          >
+          <Button variant="contained" type="submit" color="primary" sx={{ height: "56px" }}>
             Add
           </Button>
         </Box>
@@ -277,18 +247,10 @@ export default function CustomersPage() {
         <DialogContent dividers>
           {!isEditing && selectedClient && (
             <>
-              <Typography>
-                <strong>ID:</strong> {selectedClient.ID}
-              </Typography>
-              <Typography>
-                <strong>Name:</strong> {selectedClient.Name}
-              </Typography>
-              <Typography>
-                <strong>Email:</strong> {selectedClient.Email}
-              </Typography>
-              <Typography>
-                <strong>Phone:</strong> {selectedClient.Phone}
-              </Typography>
+              <Typography><strong>ID:</strong> {selectedClient.id}</Typography>
+              <Typography><strong>Name:</strong> {selectedClient.name}</Typography>
+              <Typography><strong>Email:</strong> {selectedClient.email}</Typography>
+              <Typography><strong>Phone:</strong> {selectedClient.phone}</Typography>
             </>
           )}
 
@@ -306,10 +268,7 @@ export default function CustomersPage() {
               <Button onClick={() => setIsEditing(true)} color="primary">
                 Edit
               </Button>
-              <Button
-                onClick={() => handleDeleteClient(selectedClient.ID)}
-                color="error"
-              >
+              <Button onClick={() => handleDeleteClient(selectedClient.id)} color="error">
                 Delete
               </Button>
             </>
