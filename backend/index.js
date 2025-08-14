@@ -24,7 +24,8 @@ async function startServer() {
     connection.release();
 
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`Server running...`));
+
   } catch (error) {
     console.error("❌ Failed to connect to the database:", error.message);
     process.exit(1); // מפסיק את התהליך אם אין חיבור למסד
@@ -36,6 +37,10 @@ startServer();
 // בדיקה בסיסית
 app.get("/api/test-db", (req, res) => {
   res.json({ dbWorking: true, message: "Basic server test – working" });
+});
+
+app.get("/api/test-db", (req, res) => {
+  res.status(200).send("OK");
 });
 
 // טיפול בשגיאות

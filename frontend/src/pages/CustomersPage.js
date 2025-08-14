@@ -1,3 +1,4 @@
+// CustomersPage.js
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -32,7 +33,7 @@ export default function CustomersPage() {
 
   const fetchClients = () => {
     console.log("📡 שולח בקשת GET לשרת...");
-    fetch("http://localhost:3001/api/clients")
+    fetch(`${process.env.REACT_APP_API_URL}/clients`)
       .then((res) => {
         console.log("🔁 התקבלה תגובה מהשרת:", res);
         return res.json();
@@ -48,23 +49,43 @@ export default function CustomersPage() {
       });
   };
 
-  // הוספת לקוח חדש
+  // הוספת לקוח חדש עם בדיקה
   const handleAddClient = (clientData) => {
-    fetch("http://localhost:3001/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(clientData),
-    })
-      .then((res) => res.json())
-      .then(() => {
-        fetchClients();
-      })
-      .catch(console.error);
+  // המרת שמות השדות לקטנים לפי מה שה-backend מצפה
+  const payload = {
+    name: clientData.name?.trim(),
+    email: clientData.email?.trim(),
+    phone: clientData.phone?.trim(),
   };
+
+  // בדיקה שהשדות לא ריקים
+  if (!payload.name || !payload.email || !payload.phone) {
+    alert("נא למלא את כל השדות: Name, Email, Phone");
+    return;
+  }
+
+  console.log("Sending client payload:", payload);
+
+  fetch(`${process.env.REACT_APP_API_URL}/clients`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      return res.json();
+    })
+    .then(() => fetchClients())
+    .catch((err) => {
+      console.error("❌ שגיאה בעת הוספת לקוח:", err);
+      alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
+    });
+};
+
 
   // עדכון לקוח קיים
   const handleUpdateClient = (clientData) => {
-    fetch(`http://localhost:3001/api/clients/${selectedClient.ID}`, {
+    fetch(`${process.env.REACT_APP_API_URL}/clients/${selectedClient.ID}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(clientData),
@@ -87,7 +108,7 @@ export default function CustomersPage() {
   const handleDeleteClient = (ID) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
 
-    fetch(`http://localhost:3001/api/clients/${ID}`, {
+    fetch(`${process.env.REACT_APP_API_URL}/clients/${ID}`, {
       method: "DELETE",
     })
       .then((res) => {
@@ -104,9 +125,9 @@ export default function CustomersPage() {
       .catch(console.error);
   };
 
-  // פונקציית סינון ללקוחות לפי חיפוש בשם או אימייל
+  // סינון לקוחות לפי חיפוש
   const filteredClients = clients
-    .filter(Boolean) // מסנן ערכים falsy
+    .filter(Boolean)
     .filter((client) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
@@ -137,6 +158,7 @@ export default function CustomersPage() {
         CUSTOMER MANAGEMENT
       </Typography>
 
+      {/* Client List */}
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           Client List
@@ -170,13 +192,10 @@ export default function CustomersPage() {
               </TableRow>
             ) : (
               filteredClients.map((client) => {
-                console.log("Rendering client:", client);
-
                 const id = client.ID ?? "(missing id)";
                 const name = client.Name ?? "(missing name)";
                 const email = client.Email ?? "(missing email)";
                 const phone = client.Phone ?? "(missing phone)";
-
                 return (
                   <TableRow
                     key={id}
@@ -199,7 +218,7 @@ export default function CustomersPage() {
         </Table>
       </Paper>
 
-      {/* הוספת לקוח חדש */}
+      {/* Add New Client */}
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           Add New Client
@@ -211,9 +230,9 @@ export default function CustomersPage() {
           onSubmit={(e) => {
             e.preventDefault();
             handleAddClient({
-              Name: e.target.name.value,
-              Email: e.target.email.value,
-              Phone: e.target.phone.value,
+              name: e.target.name.value.trim(),
+              email: e.target.email.value.trim(),
+              phone: e.target.phone.value.trim(),
             });
             e.target.reset();
           }}
@@ -244,7 +263,7 @@ export default function CustomersPage() {
         </Box>
       </Paper>
 
-      {/* מודאל פרטי לקוח / עריכה */}
+      {/* Client Modal */}
       <Dialog
         open={Boolean(selectedClient)}
         onClose={() => {
