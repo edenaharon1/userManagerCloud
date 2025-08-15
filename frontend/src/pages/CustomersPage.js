@@ -19,6 +19,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
+import { apiFetch } from "../api"; // <-- שימוש בקובץ api.js
 
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
@@ -31,22 +32,21 @@ export default function CustomersPage() {
     fetchClients();
   }, []);
 
-  const fetchClients = () => {
+  const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
-    fetch(`${process.env.REACT_APP_API_URL}/clients`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("✅ קיבלתי את הלקוחות:", data);
-        setClients(data.clients || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("❌ שגיאה בעת הבאת לקוחות:", err);
-        setLoading(false);
-      });
+    try {
+      const res = await apiFetch("/clients");
+      const data = await res.json();
+      console.log("✅ קיבלתי את הלקוחות:", data);
+      setClients(data.clients || []);
+    } catch (err) {
+      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddClient = (clientData) => {
+  const handleAddClient = async (clientData) => {
     const payload = {
       name: clientData.name?.trim(),
       email: clientData.email?.trim(),
@@ -60,60 +60,52 @@ export default function CustomersPage() {
 
     console.log("Sending client payload:", payload);
 
-    fetch(`${process.env.REACT_APP_API_URL}/clients`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        return res.json();
-      })
-      .then(() => fetchClients())
-      .catch((err) => {
-        console.error("❌ שגיאה בעת הוספת לקוח:", err);
-        alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
+    try {
+      const res = await apiFetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      await fetchClients();
+    } catch (err) {
+      console.error("❌ שגיאה בעת הוספת לקוח:", err);
+      alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
+    }
   };
 
-  const handleUpdateClient = (clientData) => {
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${selectedClient.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(clientData),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("עדכון נכשל");
-        return res.json();
-      })
-      .then((data) => {
-        setClients((prev) =>
-          prev.map((c) => (c.id === selectedClient.id ? data.client : c))
-        );
-        setSelectedClient(data.client);
-        setIsEditing(false);
-      })
-      .catch(console.error);
+  const handleUpdateClient = async (clientData) => {
+    try {
+      const res = await apiFetch(`/clients/${selectedClient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clientData),
+      });
+      if (!res.ok) throw new Error("עדכון נכשל");
+      const data = await res.json();
+      setClients((prev) =>
+        prev.map((c) => (c.id === selectedClient.id ? data.client : c))
+      );
+      setSelectedClient(data.client);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("❌ שגיאה בעת עדכון לקוח:", err);
+    }
   };
 
-  const handleDeleteClient = (id) => {
+  const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
-
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${id}`, {
-      method: "DELETE",
-    })
-      .then((res) => {
-        if (res.ok) {
-          setClients((prev) => prev.filter((c) => c.id !== id));
-          if (selectedClient && selectedClient.id === id) {
-            setSelectedClient(null);
-            setIsEditing(false);
-          }
-        } else {
-          throw new Error("מחיקה נכשלה");
-        }
-      })
-      .catch(console.error);
+    try {
+      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("מחיקה נכשלה");
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      if (selectedClient && selectedClient.id === id) {
+        setSelectedClient(null);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error("❌ שגיאה בעת מחיקת לקוח:", err);
+    }
   };
 
   const filteredClients = clients.filter(Boolean).filter((client) => {

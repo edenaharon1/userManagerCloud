@@ -3,7 +3,11 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
 app.use(express.json());
 
 // טוען את הראוטים
@@ -14,34 +18,29 @@ app.use("/api/clients", clientsRouter);
 app.use("/api/reminders", remindersRouter);
 
 // בדיקת התחברות למסד הנתונים לפני התחלת השרת
-const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור (כמו בדוגמה למעלה)
+const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור
 
 async function startServer() {
   try {
-    // ניסיון חיבור למסד
     const connection = await db.getConnection();
     console.log("✅ Successfully connected to the database.");
     connection.release();
 
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, '0.0.0.0', () => console.log(`Server running...`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}...`));
 
   } catch (error) {
     console.error("❌ Failed to connect to the database:", error.message);
-    process.exit(1); // מפסיק את התהליך אם אין חיבור למסד
+    process.exit(1);
   }
 }
-
-startServer();
 
 // בדיקה בסיסית
 app.get("/api/test-db", (req, res) => {
   res.json({ dbWorking: true, message: "Basic server test – working" });
 });
 
-app.get("/api/test-db", (req, res) => {
-  res.status(200).send("OK");
-});
+startServer();
 
 // טיפול בשגיאות
 app.use((err, req, res, next) => {
