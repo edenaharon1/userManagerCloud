@@ -67,7 +67,12 @@ export default function CustomersPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      await fetchClients();
+
+      const data = await res.json();
+      if (data.client) {
+        // עדכון המצב (state) ישירות עם הלקוח החדש שחזר מהשרת
+        setClients((prev) => [data.client, ...prev]);
+      }
     } catch (err) {
       console.error("❌ שגיאה בעת הוספת לקוח:", err);
       alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
