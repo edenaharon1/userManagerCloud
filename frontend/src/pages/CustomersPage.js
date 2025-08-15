@@ -1,3 +1,4 @@
+// CustomersPage.js
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -34,8 +35,7 @@ export default function CustomersPage() {
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      // עדכון הנתיב לכלול /api
-      const res = await apiFetch("/api/clients");
+      const res = await apiFetch("/clients");
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
       setClients(data.clients || []);
@@ -61,8 +61,7 @@ export default function CustomersPage() {
     console.log("Sending client payload:", payload);
 
     try {
-      // עדכון הנתיב לכלול /api
-      const res = await apiFetch("/api/clients", {
+      const res = await apiFetch("/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -77,8 +76,7 @@ export default function CustomersPage() {
 
   const handleUpdateClient = async (clientData) => {
     try {
-      // עדכון הנתיב לכלול /api
-      const res = await apiFetch(`/api/clients/${selectedClient.id}`, {
+      const res = await apiFetch(`/clients/${selectedClient.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clientData),
@@ -98,8 +96,7 @@ export default function CustomersPage() {
   const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
     try {
-      // עדכון הנתיב לכלול /api
-      const res = await apiFetch(`/api/clients/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("מחיקה נכשלה");
       setClients((prev) => prev.filter((c) => c.id !== id));
       if (selectedClient && selectedClient.id === id) {
