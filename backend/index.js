@@ -12,7 +12,6 @@ app.use(express.json());
 
 // טוען את הראוטים
 const clientsRouter = require("./routes/clients");
-const remindersRouter = require("./routes/reminders");
 
 app.use("/api/clients", clientsRouter);
 
