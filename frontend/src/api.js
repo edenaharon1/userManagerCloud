@@ -2,34 +2,27 @@
 
 import { useState, useEffect } from "react";
 
-// The base URL is dynamically determined to handle different environments.
-// We prioritize the current hostname, then a public IP service, and finally fallback to localhost.
+// The base URL is dynamically determined based on the environment.
+// This is the correct and standard way to handle different API endpoints.
 export async function getApiBase() {
-    // If running on a client-side environment (in a browser)
-    if (typeof window !== "undefined" && window.location) {
-        const host = window.location.hostname;
-        // 1) Use the current hostname, if it's not a local address
-        if (host && host !== "localhost" && host !== "127.0.0.1") {
-            return `${window.location.protocol}//${host}:3001/api`;
-        }
+    // --------------------------------------------------------------------------------
+    // 💡 שינוי מהותי: הגדרת ה-API URL בהתאם לסביבת העבודה (Development או Production)
+    // --------------------------------------------------------------------------------
+    if (process.env.NODE_ENV === 'development') {
+        // אם אנחנו בסביבת פיתוח, נשתמש בכתובת המקומית (localhost).
+        console.log("Using local API URL for development.");
+        return "http://localhost:3001/api";
+    } else {
+        // אם אנחנו בסביבת פרודקשן (אחרי npm run build), נשתמש בכתובת הציבורית.
+        console.log("Using production API URL.");
+        // ניתן להוסיף כאן גם את ה-protocol וה-port אם הם משתנים
+        // לדוגמה, אם האתר רץ ב-HTTPS בפרודקשן:
+        // return "https://your-domain.com:3001/api";
+        return "http://79.177.154.226:3001/api";
     }
-
-    // 2) Attempt to get the public IP via a dedicated service
-    try {
-        const resp = await fetch("https://api.ipify.org?format=json");
-        if (resp.ok) {
-            const { ip } = await resp.json();
-            if (ip) {
-                console.log(`Using public IP: ${ip} for API calls.`);
-                return `http://${ip}:3001/api`;
-            }
-        }
-    } catch (e) {
-        console.warn("Could not fetch public IP:", e?.message || e);
-    }
-
-    // 3) Final fallback to local development URL
-    return "http://localhost:3001/api";
+    // --------------------------------------------------------------------------------
+    // הלוגיקה המקורית והמורכבת הוסרה מכיוון שהיא יוצרת בעיות ואינה הדרך המקובלת
+    // --------------------------------------------------------------------------------
 }
 
 // A custom hook to get the API base URL asynchronously and manage state
