@@ -33,18 +33,18 @@ export default function CustomersPage() {
   }, []);
 
   const fetchClients = async () => {
-    console.log("📡 שולח בקשת GET לשרת...");
-    try {
-      const res = await apiFetch("/clients");
-      const data = await res.json();
-      console.log("✅ קיבלתי את הלקוחות:", data);
-      setClients(data.clients || []);
-    } catch (err) {
-      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log("📡 שולח בקשת GET לשרת...");
+    try {
+      const res = await apiFetch("/clients");
+      const data = await res.json();
+      console.log("✅ קיבלתי את הלקוחות:", data);
+      setClients(data.clients || []);
+    } catch (err) {
+      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddClient = async (clientData) => {
     const payload = {
