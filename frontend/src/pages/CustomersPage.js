@@ -21,6 +21,14 @@ import {
 import ClientForm from "../components/ClientForm";
 import { apiFetch } from "../api"; // <-- שימוש בקובץ api.js
 
+// פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
+const lowerizeKeys = (obj) => {
+  return Object.keys(obj).reduce((acc, key) => {
+    acc[key.toLowerCase()] = obj[key];
+    return acc;
+  }, {});
+};
+
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,18 +41,21 @@ export default function CustomersPage() {
   }, []);
 
   const fetchClients = async () => {
-    console.log("📡 שולח בקשת GET לשרת...");
-    try {
+    console.log("📡 שולח בקשת GET לשרת...");
+    try {
       const res = await apiFetch("/clients");
-      const data = await res.json();
-      console.log("✅ קיבלתי את הלקוחות:", data);
-      setClients(data.clients || []);
-    } catch (err) {
-      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const data = await res.json();
+      console.log("✅ קיבלתי את הלקוחות:", data);
+      
+      // 💡 שינוי: המרת כל המפתחות לאותיות קטנות
+      const clientsWithLowercaseKeys = data.clients.map(lowerizeKeys);
+      setClients(clientsWithLowercaseKeys || []);
+    } catch (err) {
+      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddClient = async (clientData) => {
     const payload = {
@@ -71,7 +82,9 @@ export default function CustomersPage() {
       const data = await res.json();
       if (data.client) {
         // עדכון המצב (state) ישירות עם הלקוח החדש שחזר מהשרת
-        setClients((prev) => [data.client, ...prev]);
+        // 💡 שינוי: המרת הלקוח החדש גם כן
+        const newClient = lowerizeKeys(data.client);
+        setClients((prev) => [newClient, ...prev]);
       }
     } catch (err) {
       console.error("❌ שגיאה בעת הוספת לקוח:", err);
@@ -88,10 +101,12 @@ export default function CustomersPage() {
       });
       if (!res.ok) throw new Error("עדכון נכשל");
       const data = await res.json();
+      // 💡 שינוי: המרת הלקוח המעודכן גם כן
+      const updatedClient = lowerizeKeys(data.client);
       setClients((prev) =>
-        prev.map((c) => (c.id === selectedClient.id ? data.client : c))
+        prev.map((c) => (c.id === selectedClient.id ? updatedClient : c))
       );
-      setSelectedClient(data.client);
+      setSelectedClient(updatedClient);
       setIsEditing(false);
     } catch (err) {
       console.error("❌ שגיאה בעת עדכון לקוח:", err);
@@ -177,6 +192,7 @@ export default function CustomersPage() {
             ) : (
               filteredClients.map((client) => (
                 <TableRow
+                  // 💡 שינוי: הוספת מאפיין key ייחודי
                   key={client.id}
                   hover
                   sx={{ cursor: "pointer" }}
