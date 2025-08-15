@@ -15,7 +15,6 @@ const clientsRouter = require("./routes/clients");
 const remindersRouter = require("./routes/reminders");
 
 app.use("/api/clients", clientsRouter);
-app.use("/api/reminders", remindersRouter);
 
 // בדיקת התחברות למסד הנתונים לפני התחלת השרת
 const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור
