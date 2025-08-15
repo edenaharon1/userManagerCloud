@@ -35,7 +35,7 @@ export default function CustomersPage() {
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      const res = await apiFetch("/clients");
+      const res = await apiFetch("/clients");
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
       setClients(data.clients || []);
