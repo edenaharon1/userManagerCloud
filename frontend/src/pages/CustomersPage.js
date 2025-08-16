@@ -19,7 +19,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
-import { apiFetch } from "../api"; // <-- שימוש בקובץ api.js
+import { apiFetch } from "../api"; // שימוש בקובץ api.js
 
 // פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
 const lowerizeKeys = (obj) => {
@@ -43,11 +43,11 @@ export default function CustomersPage() {
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      const res = await apiFetch("/clients");
+      // שים לב: נתיב הוא '/' בלבד, כי ה-base כבר מוסיף '/api'
+      const res = await apiFetch("/"); 
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
-      
-      // 💡 שינוי: המרת כל המפתחות לאותיות קטנות
+
       const clientsWithLowercaseKeys = data.clients.map(lowerizeKeys);
       setClients(clientsWithLowercaseKeys || []);
     } catch (err) {
@@ -72,7 +72,7 @@ export default function CustomersPage() {
     console.log("Sending client payload:", payload);
 
     try {
-      const res = await apiFetch("/clients", {
+      const res = await apiFetch("/", { // נתיב '/' בלבד
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -81,8 +81,6 @@ export default function CustomersPage() {
 
       const data = await res.json();
       if (data.client) {
-        // עדכון המצב (state) ישירות עם הלקוח החדש שחזר מהשרת
-        // 💡 שינוי: המרת הלקוח החדש גם כן
         const newClient = lowerizeKeys(data.client);
         setClients((prev) => [newClient, ...prev]);
       }
@@ -94,14 +92,13 @@ export default function CustomersPage() {
 
   const handleUpdateClient = async (clientData) => {
     try {
-      const res = await apiFetch(`/clients/${selectedClient.id}`, {
+      const res = await apiFetch(`/${selectedClient.id}`, { // נתיב '/' בלבד + id
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clientData),
       });
       if (!res.ok) throw new Error("עדכון נכשל");
       const data = await res.json();
-      // 💡 שינוי: המרת הלקוח המעודכן גם כן
       const updatedClient = lowerizeKeys(data.client);
       setClients((prev) =>
         prev.map((c) => (c.id === selectedClient.id ? updatedClient : c))
@@ -116,7 +113,7 @@ export default function CustomersPage() {
   const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
     try {
-      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/${id}`, { method: "DELETE" }); // נתיב '/' בלבד + id
       if (!res.ok) throw new Error("מחיקה נכשלה");
       setClients((prev) => prev.filter((c) => c.id !== id));
       if (selectedClient && selectedClient.id === id) {
@@ -192,7 +189,6 @@ export default function CustomersPage() {
             ) : (
               filteredClients.map((client) => (
                 <TableRow
-                  // 💡 שינוי: הוספת מאפיין key ייחודי
                   key={client.id}
                   hover
                   sx={{ cursor: "pointer" }}
