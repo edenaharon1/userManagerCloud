@@ -11,10 +11,10 @@ const clientsRouter = require("./routes/clients");
 const remindersRouter = require("./routes/reminders");
 
 app.use("/api/clients", clientsRouter);
-app.use("/api/reminders", remindersRouter);
+
 
 // בדיקת התחברות למסד הנתונים לפני התחלת השרת
-const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור (כמו בדוגמה למעלה)
+const db = require("./db"); 
 
 async function startServer() {
   try {
@@ -34,14 +34,6 @@ async function startServer() {
 
 startServer();
 
-// בדיקה בסיסית
-app.get("/api/test-db", (req, res) => {
-  res.json({ dbWorking: true, message: "Basic server test – working" });
-});
-
-app.get("/api/test-db", (req, res) => {
-  res.status(200).send("OK");
-});
 
 // טיפול בשגיאות
 app.use((err, req, res, next) => {
