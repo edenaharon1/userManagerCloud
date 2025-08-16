@@ -19,15 +19,22 @@ import {
   DialogActions,
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
-import { apiFetch } from "../api"; // שימוש בקובץ api.js
 
 // פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
-const lowerizeKeys = (obj) => {
-  return Object.keys(obj).reduce((acc, key) => {
+const lowerizeKeys = (obj) =>
+  Object.keys(obj).reduce((acc, key) => {
     acc[key.toLowerCase()] = obj[key];
     return acc;
   }, {});
-};
+
+// 💡 BASE URL דינמי ל-backend
+const BACKEND_PORT = 3001;
+const API_URL =
+  process.env.NODE_ENV === "development"
+    ? `http://localhost:${BACKEND_PORT}/api`
+    : `http://${window.location.hostname}:${BACKEND_PORT}/api`;
+
+console.log("API_URL =", API_URL);
 
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
@@ -40,11 +47,12 @@ export default function CustomersPage() {
     fetchClients();
   }, []);
 
+  // הבאת לקוחות
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      // שים לב: נתיב הוא '/' בלבד, כי ה-base כבר מוסיף '/api'
-      const res = await apiFetch("/"); 
+      const res = await fetch(`${API_URL}/`);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
 
@@ -57,13 +65,13 @@ export default function CustomersPage() {
     }
   };
 
+  // הוספת לקוח
   const handleAddClient = async (clientData) => {
     const payload = {
       name: clientData.name?.trim(),
       email: clientData.email?.trim(),
       phone: clientData.phone?.trim(),
     };
-
     if (!payload.name || !payload.email || !payload.phone) {
       alert("נא למלא את כל השדות: Name, Email, Phone");
       return;
@@ -72,7 +80,7 @@ export default function CustomersPage() {
     console.log("Sending client payload:", payload);
 
     try {
-      const res = await apiFetch("/", { // נתיב '/' בלבד
+      const res = await fetch(`${API_URL}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -90,14 +98,16 @@ export default function CustomersPage() {
     }
   };
 
+  // עדכון לקוח
   const handleUpdateClient = async (clientData) => {
     try {
-      const res = await apiFetch(`/${selectedClient.id}`, { // נתיב '/' בלבד + id
+      const res = await fetch(`${API_URL}/${selectedClient.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clientData),
       });
       if (!res.ok) throw new Error("עדכון נכשל");
+
       const data = await res.json();
       const updatedClient = lowerizeKeys(data.client);
       setClients((prev) =>
@@ -110,11 +120,13 @@ export default function CustomersPage() {
     }
   };
 
+  // מחיקת לקוח
   const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
     try {
-      const res = await apiFetch(`/${id}`, { method: "DELETE" }); // נתיב '/' בלבד + id
+      const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("מחיקה נכשלה");
+
       setClients((prev) => prev.filter((c) => c.id !== id));
       if (selectedClient && selectedClient.id === id) {
         setSelectedClient(null);
@@ -256,10 +268,18 @@ export default function CustomersPage() {
         <DialogContent dividers>
           {!isEditing && selectedClient && (
             <>
-              <Typography><strong>ID:</strong> {selectedClient.id}</Typography>
-              <Typography><strong>Name:</strong> {selectedClient.name}</Typography>
-              <Typography><strong>Email:</strong> {selectedClient.email}</Typography>
-              <Typography><strong>Phone:</strong> {selectedClient.phone}</Typography>
+              <Typography>
+                <strong>ID:</strong> {selectedClient.id}
+              </Typography>
+              <Typography>
+                <strong>Name:</strong> {selectedClient.name}
+              </Typography>
+              <Typography>
+                <strong>Email:</strong> {selectedClient.email}
+              </Typography>
+              <Typography>
+                <strong>Phone:</strong> {selectedClient.phone}
+              </Typography>
             </>
           )}
 

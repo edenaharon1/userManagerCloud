@@ -1,19 +1,26 @@
 // src/api.js
 import { useState, useEffect } from "react";
 
-// The base URL is dynamically determined based on the environment.
+// 💡 פונקציה שמחזירה את BASE URL של ה-backend דינמית לפי כתובת הדפדפן
 export async function getApiBase() {
-  if (process.env.NODE_ENV === 'development') {
+  // אם מדובר בפיתוח מקומי
+  if (process.env.NODE_ENV === "development") {
     console.log("Using local API URL for development.");
-    return "http://localhost:3001/api"; // dev backend
+    return "http://localhost:3001/api"; // backend מקומי
   } else {
-    console.log("Using production API URL.");
-    // שימוש ב-relative path במקום IP קבוע
-    return "/api"; 
+    console.log("Using dynamic production API URL based on current host.");
+
+    // מקבל את ה-hostname של הדפדפן (IP או דומיין בלבד, בלי פורט)
+    const hostName = window.location.hostname;
+    const backendPort = 3001; // פורט ה-backend
+    const baseUrl = `http://${hostName}:${backendPort}/api`;
+
+    console.log("Determined API base URL:", baseUrl);
+    return baseUrl;
   }
 }
 
-// A custom hook to get the API base URL asynchronously and manage state
+// 🔹 Hook שמחזיר את BASE URL באופן אסינכרוני ומנהל state
 export const useApiBase = () => {
   const [apiBase, setApiBase] = useState(null);
 
@@ -24,7 +31,7 @@ export const useApiBase = () => {
   return apiBase;
 };
 
-// A fetch wrapper function that automatically prefixes the base URL
+// 🔹 פונקציית fetch מותאמת שמוסיפה את ה-BASE URL אוטומטית
 export async function apiFetch(path, opts = {}) {
   const base = await getApiBase();
   if (!base) {
@@ -32,5 +39,6 @@ export async function apiFetch(path, opts = {}) {
   }
 
   const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+  console.log("📡 Fetching URL:", url);
   return fetch(url, opts);
 }
