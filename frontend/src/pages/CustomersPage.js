@@ -19,7 +19,6 @@ import {
   DialogActions,
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
-
 import { apiFetch } from "../api";
 
 // פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
@@ -44,8 +43,7 @@ export default function CustomersPage() {
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      // ✅ הנתיב שונה ל-"/"
-      const res = await apiFetch("/");
+      const res = await apiFetch("/clients");
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
@@ -74,8 +72,7 @@ export default function CustomersPage() {
     console.log("Sending client payload:", payload);
 
     try {
-      // ✅ הנתיב שונה ל-"/"
-      const res = await apiFetch("/", {
+      const res = await apiFetch("/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -96,8 +93,7 @@ export default function CustomersPage() {
   // עדכון לקוח
   const handleUpdateClient = async (clientData) => {
     try {
-      // ✅ הנתיב שונה ל-"/:id"
-      const res = await apiFetch(`/${selectedClient.id}`, {
+      const res = await apiFetch(`/clients/${selectedClient.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clientData),
@@ -120,8 +116,7 @@ export default function CustomersPage() {
   const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
     try {
-      // ✅ הנתיב שונה ל-"/:id"
-      const res = await apiFetch(`/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("מחיקה נכשלה");
 
       setClients((prev) => prev.filter((c) => c.id !== id));
