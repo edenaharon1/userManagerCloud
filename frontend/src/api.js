@@ -31,6 +31,8 @@ export async function apiFetch(path, opts = {}) {
   if (!base) {
     throw new Error("Could not determine API base URL.");
   }
-  const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  // ✅ שינוי: מחברים את base וה-path כך שלא יווצר כפילות
+  const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
   return fetch(url, opts);
 }
