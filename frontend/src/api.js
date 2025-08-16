@@ -1,16 +1,15 @@
 // src/api.js
-
 import { useState, useEffect } from "react";
 
 // The base URL is dynamically determined based on the environment.
-// This is the correct and standard way to handle different API endpoints.
 export async function getApiBase() {
   if (process.env.NODE_ENV === 'development') {
     console.log("Using local API URL for development.");
-    return "http://localhost:3001/api";
+    return "http://localhost:3001/api"; // dev backend
   } else {
     console.log("Using production API URL.");
-    return `${window.location.protocol}//${window.location.host}/api`;
+    // שימוש ב-relative path במקום IP קבוע
+    return "/api"; 
   }
 }
 
@@ -32,7 +31,6 @@ export async function apiFetch(path, opts = {}) {
     throw new Error("Could not determine API base URL.");
   }
 
-  // ✅ שינוי: מחברים את base וה-path כך שלא יווצר כפילות
   const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
   return fetch(url, opts);
 }
