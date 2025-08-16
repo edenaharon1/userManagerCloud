@@ -17,7 +17,7 @@ const clientsRouter = require("./routes/clients");
 
 // 💡 השינוי המרכזי כאן: החלפת הנתיב מ-"/api/clients" ל-"/api"
 // זה מפנה את כל התעבורה שמתחילה ב-/api אל הראוטר clientsRouter.
-app.use("/api", clientsRouter);
+app.use("/api/clients", clientsRouter);
 
 // בדיקת התחברות למסד הנתונים לפני התחלת השרת
 const db = require("./db"); // ← נתיב לקובץ שמייצא את החיבור
