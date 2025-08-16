@@ -20,21 +20,14 @@ import {
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
 
+import { apiFetch } from "../api";
+
 // פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
 const lowerizeKeys = (obj) =>
   Object.keys(obj).reduce((acc, key) => {
     acc[key.toLowerCase()] = obj[key];
     return acc;
   }, {});
-
-// 💡 BASE URL דינמי ל-backend
-const BACKEND_PORT = 3001;
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? `http://localhost:${BACKEND_PORT}/api`
-    : `http://${window.location.hostname}:${BACKEND_PORT}/api`;
-
-console.log("API_URL =", API_URL);
 
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
@@ -51,7 +44,8 @@ export default function CustomersPage() {
   const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
     try {
-      const res = await fetch(`${API_URL}/`);
+      // ✅ הנתיב שונה ל-"/"
+      const res = await apiFetch("/");
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       console.log("✅ קיבלתי את הלקוחות:", data);
@@ -80,7 +74,8 @@ export default function CustomersPage() {
     console.log("Sending client payload:", payload);
 
     try {
-      const res = await fetch(`${API_URL}/`, {
+      // ✅ הנתיב שונה ל-"/"
+      const res = await apiFetch("/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -101,7 +96,8 @@ export default function CustomersPage() {
   // עדכון לקוח
   const handleUpdateClient = async (clientData) => {
     try {
-      const res = await fetch(`${API_URL}/${selectedClient.id}`, {
+      // ✅ הנתיב שונה ל-"/:id"
+      const res = await apiFetch(`/${selectedClient.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clientData),
@@ -124,7 +120,8 @@ export default function CustomersPage() {
   const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
     try {
-      const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      // ✅ הנתיב שונה ל-"/:id"
+      const res = await apiFetch(`/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("מחיקה נכשלה");
 
       setClients((prev) => prev.filter((c) => c.id !== id));
