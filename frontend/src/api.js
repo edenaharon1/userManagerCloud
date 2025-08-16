@@ -1,23 +1,33 @@
 // src/api.js
+
 import { useState, useEffect } from "react";
 
-// 💡 פונקציה שמחזירה את BASE URL של ה-backend דינמית לפי כתובת הדפדפן
+// 💡 פונקציה שמחזירה את BASE URL של ה-backend באופן דינמי
 export async function getApiBase() {
-  // אם מדובר בפיתוח מקומי
+  // אם מדובר בפיתוח מקומי, השתמש בכתובת המקומית
   if (process.env.NODE_ENV === "development") {
     console.log("Using local API URL for development.");
     return "http://localhost:3001/api"; // backend מקומי
-  } else {
-    console.log("Using dynamic production API URL based on current host.");
-
-    // מקבל את ה-hostname של הדפדפן (IP או דומיין בלבד, בלי פורט)
-    const hostName = window.location.hostname;
-    const backendPort = 3001; // פורט ה-backend
-    const baseUrl = `http://${hostName}:${backendPort}/api`;
-
-    console.log("Determined API base URL:", baseUrl);
-    return baseUrl;
+  } 
+  
+  // אם מדובר בסביבת פרודקשן
+  console.log("Using dynamic production API URL based on current host.");
+  
+  // מקבל את שם המארח (hostname) ואת הפורט הנוכחי של הדפדפן
+  const hostName = window.location.hostname;
+  const port = window.location.port;
+  
+  let baseUrl = `${window.location.protocol}//${hostName}`;
+  
+  // ✅ בודק אם קיים פורט, ואם כן, מוסיף אותו
+  if (port) {
+    baseUrl += `:${port}`;
   }
+  
+  baseUrl += "/api";
+  
+  console.log("Determined API base URL:", baseUrl);
+  return baseUrl;
 }
 
 // 🔹 Hook שמחזיר את BASE URL באופן אסינכרוני ומנהל state
