@@ -19,6 +19,14 @@ import {
   DialogActions,
 } from "@mui/material";
 import ClientForm from "../components/ClientForm";
+import { apiFetch } from "../api";
+
+// פונקציית עזר להמרת כל המפתחות באובייקט לאותיות קטנות
+const lowerizeKeys = (obj) =>
+  Object.keys(obj).reduce((acc, key) => {
+    acc[key.toLowerCase()] = obj[key];
+    return acc;
+  }, {});
 
 export default function CustomersPage() {
   const [clients, setClients] = useState([]);
@@ -31,111 +39,104 @@ export default function CustomersPage() {
     fetchClients();
   }, []);
 
-  const fetchClients = () => {
+  // הבאת לקוחות
+  const fetchClients = async () => {
     console.log("📡 שולח בקשת GET לשרת...");
-    fetch(`${process.env.REACT_APP_API_URL}/clients`)
-      .then((res) => {
-        console.log("🔁 התקבלה תגובה מהשרת:", res);
-        return res.json();
-      })
-      .then((data) => {
-        console.log("✅ קיבלתי את הלקוחות:", data);
-        setClients(data.clients || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("❌ שגיאה בעת הבאת לקוחות:", err);
-        setLoading(false);
-      });
-  };
-
-  // הוספת לקוח חדש עם בדיקה
-  const handleAddClient = (clientData) => {
-  // המרת שמות השדות לקטנים לפי מה שה-backend מצפה
-  const payload = {
-    name: clientData.name?.trim(),
-    email: clientData.email?.trim(),
-    phone: clientData.phone?.trim(),
-  };
-
-  // בדיקה שהשדות לא ריקים
-  if (!payload.name || !payload.email || !payload.phone) {
-    alert("נא למלא את כל השדות: Name, Email, Phone");
-    return;
-  }
-
-  console.log("Sending client payload:", payload);
-
-  fetch(`${process.env.REACT_APP_API_URL}/clients`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
-    .then((res) => {
+    try {
+      const res = await apiFetch("/clients");
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      return res.json();
-    })
-    .then(() => fetchClients())
-    .catch((err) => {
+      const data = await res.json();
+      console.log("✅ קיבלתי את הלקוחות:", data);
+
+      const clientsWithLowercaseKeys = data.clients.map(lowerizeKeys);
+      setClients(clientsWithLowercaseKeys || []);
+    } catch (err) {
+      console.error("❌ שגיאה בעת הבאת לקוחות:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // הוספת לקוח
+  const handleAddClient = async (clientData) => {
+    const payload = {
+      name: clientData.name?.trim(),
+      email: clientData.email?.trim(),
+      phone: clientData.phone?.trim(),
+    };
+    if (!payload.name || !payload.email || !payload.phone) {
+      alert("נא למלא את כל השדות: Name, Email, Phone");
+      return;
+    }
+
+    console.log("Sending client payload:", payload);
+
+    try {
+      const res = await apiFetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+      const data = await res.json();
+      if (data.client) {
+        const newClient = lowerizeKeys(data.client);
+        setClients((prev) => [newClient, ...prev]);
+      }
+    } catch (err) {
       console.error("❌ שגיאה בעת הוספת לקוח:", err);
       alert("הוספת הלקוח נכשלה. בדקי את הקונסול.");
-    });
-};
+    }
+  };
 
+  // עדכון לקוח
+  const handleUpdateClient = async (clientData) => {
+    try {
+      const res = await apiFetch(`/clients/${selectedClient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clientData),
+      });
+      if (!res.ok) throw new Error("עדכון נכשל");
 
-  // עדכון לקוח קיים
-  const handleUpdateClient = (clientData) => {
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${selectedClient.ID}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(clientData),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("עדכון נכשל");
-        return res.json();
-      })
-      .then((data) => {
-        setClients((prev) =>
-          prev.map((c) => (c.ID === selectedClient.ID ? data.client : c))
-        );
-        setSelectedClient(data.client);
-        setIsEditing(false);
-      })
-      .catch(console.error);
+      const data = await res.json();
+      const updatedClient = lowerizeKeys(data.client);
+      setClients((prev) =>
+        prev.map((c) => (c.id === selectedClient.id ? updatedClient : c))
+      );
+      setSelectedClient(updatedClient);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("❌ שגיאה בעת עדכון לקוח:", err);
+    }
   };
 
   // מחיקת לקוח
-  const handleDeleteClient = (ID) => {
+  const handleDeleteClient = async (id) => {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק את הלקוח?")) return;
+    try {
+      const res = await apiFetch(`/clients/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("מחיקה נכשלה");
 
-    fetch(`${process.env.REACT_APP_API_URL}/clients/${ID}`, {
-      method: "DELETE",
-    })
-      .then((res) => {
-        if (res.ok) {
-          setClients((prev) => prev.filter((c) => c.ID !== ID));
-          if (selectedClient && selectedClient.ID === ID) {
-            setSelectedClient(null);
-            setIsEditing(false);
-          }
-        } else {
-          throw new Error("מחיקה נכשלה");
-        }
-      })
-      .catch(console.error);
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      if (selectedClient && selectedClient.id === id) {
+        setSelectedClient(null);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error("❌ שגיאה בעת מחיקת לקוח:", err);
+    }
   };
 
-  // סינון לקוחות לפי חיפוש
-  const filteredClients = clients
-    .filter(Boolean)
-    .filter((client) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        (client.Name && client.Name.toLowerCase().includes(term)) ||
-        (client.Email && client.Email.toLowerCase().includes(term))
-      );
-    });
+  const filteredClients = clients.filter(Boolean).filter((client) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (client.name && client.name.toLowerCase().includes(term)) ||
+      (client.email && client.email.toLowerCase().includes(term))
+    );
+  });
 
   if (loading) return <Typography>Loading clients...</Typography>;
 
@@ -151,8 +152,7 @@ export default function CustomersPage() {
           letterSpacing: "0.15em",
           color: "#0d47a1",
           marginBottom: "40px",
-          fontFamily:
-            "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         }}
       >
         CUSTOMER MANAGEMENT
@@ -191,28 +191,22 @@ export default function CustomersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map((client) => {
-                const id = client.ID ?? "(missing id)";
-                const name = client.Name ?? "(missing name)";
-                const email = client.Email ?? "(missing email)";
-                const phone = client.Phone ?? "(missing phone)";
-                return (
-                  <TableRow
-                    key={id}
-                    hover
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => {
-                      setSelectedClient(client);
-                      setIsEditing(false);
-                    }}
-                  >
-                    <TableCell>{id}</TableCell>
-                    <TableCell>{name}</TableCell>
-                    <TableCell>{email}</TableCell>
-                    <TableCell>{phone}</TableCell>
-                  </TableRow>
-                );
-              })
+              filteredClients.map((client) => (
+                <TableRow
+                  key={client.id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedClient(client);
+                    setIsEditing(false);
+                  }}
+                >
+                  <TableCell>{client.id}</TableCell>
+                  <TableCell>{client.name}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.phone}</TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -244,20 +238,9 @@ export default function CustomersPage() {
           }}
         >
           <TextField name="name" label="Name" required sx={{ flex: 1 }} />
-          <TextField
-            name="email"
-            label="Email"
-            type="email"
-            required
-            sx={{ flex: 1 }}
-          />
+          <TextField name="email" label="Email" type="email" required sx={{ flex: 1 }} />
           <TextField name="phone" label="Phone" required sx={{ flex: 1 }} />
-          <Button
-            variant="contained"
-            type="submit"
-            color="primary"
-            sx={{ height: "56px" }}
-          >
+          <Button variant="contained" type="submit" color="primary" sx={{ height: "56px" }}>
             Add
           </Button>
         </Box>
@@ -278,16 +261,16 @@ export default function CustomersPage() {
           {!isEditing && selectedClient && (
             <>
               <Typography>
-                <strong>ID:</strong> {selectedClient.ID}
+                <strong>ID:</strong> {selectedClient.id}
               </Typography>
               <Typography>
-                <strong>Name:</strong> {selectedClient.Name}
+                <strong>Name:</strong> {selectedClient.name}
               </Typography>
               <Typography>
-                <strong>Email:</strong> {selectedClient.Email}
+                <strong>Email:</strong> {selectedClient.email}
               </Typography>
               <Typography>
-                <strong>Phone:</strong> {selectedClient.Phone}
+                <strong>Phone:</strong> {selectedClient.phone}
               </Typography>
             </>
           )}
@@ -306,10 +289,7 @@ export default function CustomersPage() {
               <Button onClick={() => setIsEditing(true)} color="primary">
                 Edit
               </Button>
-              <Button
-                onClick={() => handleDeleteClient(selectedClient.ID)}
-                color="error"
-              >
+              <Button onClick={() => handleDeleteClient(selectedClient.id)} color="error">
                 Delete
               </Button>
             </>
