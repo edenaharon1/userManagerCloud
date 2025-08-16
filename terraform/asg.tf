@@ -10,9 +10,7 @@ resource "aws_launch_template" "asg-launch-template" {
       Name = "web-servers"
     }
   }
-  iam_instance_profile {
-    name = "ec2-role"
-  }
+
   user_data = filebase64("${path.module}/app-start.sh")
 }
 
@@ -23,14 +21,24 @@ resource "aws_autoscaling_group" "asg" {
     version = aws_launch_template.asg-launch-template.latest_version
   }
   vpc_zone_identifier = module.vpc.public_subnets
-  min_size            = 2
+  min_size            = 0
   max_size            = 2
   desired_capacity    = 2
   health_check_type   = "ELB"
 
   tag {
     key                 = "Name"
-    value               = "asg-instance"
+    value               = "colman-app"
     propagate_at_launch = true
   }
+}
+
+resource "aws_autoscaling_attachment" "asg_alb_attachment_front" {
+  autoscaling_group_name = resource.aws_autoscaling_group.asg.name
+  lb_target_group_arn    = aws_lb_target_group.front.arn
+}
+
+resource "aws_autoscaling_attachment" "asg_alb_attachment_back" {
+  autoscaling_group_name = resource.aws_autoscaling_group.asg.name
+  lb_target_group_arn    = aws_lb_target_group.back.arn
 }

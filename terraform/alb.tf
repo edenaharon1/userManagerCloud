@@ -9,7 +9,7 @@ resource "aws_lb" "myalb" {
 resource "aws_lb_target_group" "front" {
   name        = "FrontEnd"
   target_type = "instance"
-  port        = 3000
+  port        = "3000"
   protocol    = "HTTP"
   vpc_id      = module.vpc.vpc_id
 
@@ -29,12 +29,12 @@ resource "aws_lb_target_group" "front" {
 resource "aws_lb_target_group" "back" {
   name        = "BackEnd"
   target_type = "instance"
-  port        = 3001
+  port        = "3001"
   protocol    = "HTTP"
   vpc_id      = module.vpc.vpc_id
 
   health_check {
-    port               = "3001"  # תוקן כאן
+    port               = "3000" 
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
@@ -49,7 +49,7 @@ resource "aws_lb_target_group" "back" {
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.myalb.arn
-  port              = 80
+  port              = "80"
   protocol          = "HTTP"
 
   default_action {
@@ -58,7 +58,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-resource "aws_lb_listener_rule" "api_route" {  # שונה השם מ־static ל־api_route
+resource "aws_lb_listener_rule" "api_route" {  
   listener_arn = aws_lb_listener.http.arn
   priority     = 1
 
@@ -69,7 +69,7 @@ resource "aws_lb_listener_rule" "api_route" {  # שונה השם מ־static ל־
 
   condition {
     path_pattern {
-      values = ["/api/*"]  # זה הנתיב הנכון לפרויקט שלך
+      values = ["/api/*"]  
     }
   }
 }
